@@ -16,9 +16,10 @@ import {
   BASE_DECISIONS,
   CHANGE_MESSAGES,
   FIRST_SKETCH_MESSAGES,
-  GROUP_DECISION,
   GROUP_MEMBERS,
   GROUP_MESSAGES,
+  GROUP_OPEN_DECISIONS,
+  GROUP_REVISED_DECISIONS,
   HK_STOP,
   INITIAL_PLAN,
   MACAU_STOP,
@@ -139,7 +140,11 @@ export default function Home() {
     setReviseApplied(false);
     setTyping(false);
     setDraft("");
-    setPlan({ ...INITIAL_PLAN, stops: [HK_STOP, MACAU_STOP], decisions: BASE_DECISIONS });
+    setPlan({
+      ...INITIAL_PLAN,
+      stops: [HK_STOP, MACAU_STOP],
+      decisions: id === "group-room" ? GROUP_OPEN_DECISIONS : BASE_DECISIONS,
+    });
     setBookingOpen(id === "booking-comparison");
   }
 
@@ -231,7 +236,7 @@ export default function Home() {
   }
 
   function applyRevise() {
-    setPlan((p) => ({ ...p, decisions: [GROUP_DECISION, ...BASE_DECISIONS.slice(0, 2)] }));
+    setPlan((p) => ({ ...p, decisions: GROUP_REVISED_DECISIONS }));
     setReviseApplied(true);
     setPlanOpen(true);
     toast.success("Current Plan updated for the room", {
@@ -241,7 +246,7 @@ export default function Home() {
   }
 
   function undoRevise() {
-    setPlan((p) => ({ ...p, decisions: BASE_DECISIONS }));
+    setPlan((p) => ({ ...p, decisions: GROUP_OPEN_DECISIONS }));
     setReviseApplied(false);
     toast("Revision undone");
   }

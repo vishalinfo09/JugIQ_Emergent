@@ -43,6 +43,9 @@ export interface PlanStop {
   nights: number;
   stay: string;
   stayStatus: BookStatus;
+  /** an Open Decision that becomes relevant to this leg's stay booking */
+  stayBlockedBy?: string;
+  stayNudge?: string;
   highlights: PlanHighlight[];
   note: string;
 }
@@ -73,18 +76,8 @@ export const HK_STOP: PlanStop = {
   stay: "Harbour-side apartment hotel, Tsim Sha Tsui",
   stayStatus: "booked",
   highlights: [
-    {
-      label: "Peak Tram + Sky Terrace",
-      status: "not-booked",
-      blockedBy: "d-peaktram",
-      nudge: "Pick a Peak Tram pass before booking this.",
-    },
-    {
-      label: "Ocean Park full day",
-      status: "held",
-      blockedBy: "d-oceanpark",
-      nudge: "Settle Ocean Park vs Disneyland to lock this day.",
-    },
+    { label: "Peak Tram + Sky Terrace", status: "not-booked" },
+    { label: "Ocean Park full day", status: "held" },
     { label: "Symphony of Lights harbour walk", status: "not-booked" },
   ],
   note: "Airport express and Octopus cards make this the easy landing point with a 10-year-old.",
@@ -97,10 +90,20 @@ export const MACAU_STOP: PlanStop = {
   nights: 3,
   stay: "Cotai family resort, twin queen room",
   stayStatus: "not-booked",
+  // Solo demonstration: the crossing choice resurfaces here, because when you
+  // arrive decides which night the resort is booked from.
+  stayBlockedBy: "d-crossing",
+  stayNudge: "Settle ferry or bridge first — the arrival time decides this booking.",
   highlights: [
     { label: "Senado Square & Ruins of St. Paul's", status: "not-booked" },
     { label: "Taipa Village food walk", status: "not-booked" },
-    { label: "House of Dancing Water matinee", status: "not-booked" },
+    // Group demonstration: only surfaces once the show-vs-flight decision is open.
+    {
+      label: "House of Dancing Water matinee",
+      status: "not-booked",
+      blockedBy: "d-group-night",
+      nudge: "Rests on the show-vs-flight call the group left open.",
+    },
   ],
   note: "Compact and walkable; the resort pools are a good decompression before the long flight back.",
 };
@@ -144,6 +147,11 @@ export const GROUP_DECISION: OpenDecision = {
   options: ["Keep show, fly Sunday evening", "Skip show, fly Sunday morning"],
   unresolvedFrom: "Group discussion — still split",
 };
+
+// Group room starts without the crossing decision, so the crossing nudge stays a
+// purely solo demonstration; the show-vs-flight decision only joins after Revise.
+export const GROUP_OPEN_DECISIONS: OpenDecision[] = BASE_DECISIONS.slice(1);
+export const GROUP_REVISED_DECISIONS: OpenDecision[] = [GROUP_DECISION, ...BASE_DECISIONS.slice(1)];
 
 export const IMAGES = {
   hongKong:

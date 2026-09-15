@@ -121,9 +121,22 @@ export function CurrentPlanPanel({
                 <p className="ml-6 text-xs text-muted-foreground">{s.range}</p>
 
                 <div className="ml-6 mt-2 space-y-2 border-l border-hairline pl-3">
-                  <div className="flex flex-wrap items-center justify-between gap-1.5">
-                    <span className="text-sm text-foreground/90">{s.stay}</span>
-                    <StatusPill status={s.stayStatus} />
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                      <span className="text-sm text-foreground/90">{s.stay}</span>
+                      <StatusPill status={s.stayStatus} />
+                    </div>
+                    {s.stayNudge && s.stayBlockedBy && openIds.has(s.stayBlockedBy) && (
+                      <button
+                        type="button"
+                        onClick={() => focusDecision(s.stayBlockedBy!)}
+                        className="mt-1 flex items-start gap-1 text-left text-[0.72rem] leading-snug text-clay/90 transition-colors hover:text-clay"
+                        data-testid={`decision-nudge-${s.stayBlockedBy}`}
+                      >
+                        <CornerDownRight className="mt-0.5 size-3 shrink-0" />
+                        {s.stayNudge}
+                      </button>
+                    )}
                   </div>
                   {s.highlights.map((h) => (
                     <div key={h.label}>
