@@ -1,9 +1,18 @@
 # JugIQ Prototype — Inventory
 
-A disposable, **frontend-only** clickable UX prototype. No backend, no API calls,
-no database, no auth. All data is local mock fixtures in
-`frontend/src/lib/jugiq-data.ts`; JugIQ replies are scripted (no LLM). The
-template's FastAPI backend is untouched (stock `StatusCheck` demo route only).
+A disposable, **frontend-only** clickable prototype with **two independent UX
+directions** for JugIQ. No backend, no API calls, no database, no auth. All data
+is local mock fixtures in `frontend/src/lib/jugiq-data.ts`; JugIQ replies are
+scripted (no LLM). The template's FastAPI backend is untouched.
+
+- **Variant A — Conversation-First** at `/` (`pages/Home.tsx`, `components/jugiq/*`):
+  chat dominant, Current Plan a secondary collapsible panel / mobile drawer.
+- **Variant B — Decision Workspace** at `/b` (`pages/HomeB.tsx`, `components/jugiq-b/*`):
+  chat ~60% + a persistent Trip Workspace ~38% in three layers (Needs attention →
+  Current Plan route spine → Open Decisions); mobile surfaces it via a bottom bar
+  → sheet. A global `VariantSwitcher` (mounted in `App.tsx`) toggles the two;
+  `Home.tsx`/`components/jugiq/*` were not modified to add B. B reuses `ChatMessage`,
+  `BookingComparison`, `MarkBookedDialog` and all `jugiq-data.ts` fixtures.
 
 ## Where the code lives
 - `frontend/src/pages/Home.tsx` — single orchestrating page: state machine,
@@ -65,3 +74,21 @@ Verify no network plumbing:
 - Frontend: `cd frontend && yarn && yarn dev` (port 3000).
 - Typecheck: `cd frontend && yarn typecheck`.
 - Backend is not required to view the prototype.
+
+## Variant B — Decision Workspace (`/b`)
+Independent second direction. Orchestrator `pages/HomeB.tsx`; components in
+`frontend/src/components/jugiq-b/`:
+- `WorkspacePanel.tsx` — persistent workspace: a "Needs attention" header, the
+  Current Plan as a vertical route spine with status dots (Booked/Planned/Not
+  booked), inline Mark-as-booked + Decision Nudges, booking-conflict flag, a
+  group-stance block (agreed vs unresolved), and Open Decisions.
+- `SketchTimeline.tsx` — First Sketch as a concise route timeline (thumbnails +
+  nights/dates) with rationale, feasibility and still-to-decide.
+- `ChangeImpact.tsx` — adopted vs proposed mini-routes, downstream effects, and a
+  preserve-the-confirmed-booking conflict band.
+- `GroupProposal.tsx` — Revise output labelled "Proposed from your discussion"
+  (→ "Adopted" after Apply); agreed items vs one unresolved Open Decision.
+- `VariantSwitcher.tsx` — global A/B toggle mounted in `App.tsx`.
+Same six states, same scenario, same booking-neutrality + confirmed-booking rules
+as A. Desktop is a ~60/40 chat+workspace split; mobile is chat-first with the
+workspace behind a bottom bar → sheet.
