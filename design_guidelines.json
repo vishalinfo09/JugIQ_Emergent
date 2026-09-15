@@ -1,0 +1,251 @@
+{
+  "theme": "Light theme default with warm restrained editorial palette (calm stone neutrals, terracotta/clay accent, deep slate typography)",
+  "colors": {
+    "surfaces": [
+      {
+        "name": "page",
+        "kind": "solid",
+        "bg": "#FAF8F5",
+        "on_bg": "#1C1917",
+        "on_bg_muted": "#57534E",
+        "roles": {
+          "link": "#C2410C",
+          "error": "#B91C1C",
+          "success": "#15803D"
+        }
+      },
+      {
+        "name": "panel",
+        "kind": "solid",
+        "bg": "#FFFFFF",
+        "on_bg": "#1C1917",
+        "on_bg_muted": "#57534E",
+        "roles": {
+          "link": "#C2410C",
+          "error": "#B91C1C",
+          "success": "#15803D"
+        }
+      },
+      {
+        "name": "chat_bubble_ai",
+        "kind": "solid",
+        "bg": "#F5F2EB",
+        "on_bg": "#1C1917",
+        "on_bg_muted": "#57534E",
+        "roles": {
+          "link": "#C2410C",
+          "error": "#B91C1C",
+          "success": "#15803D"
+        }
+      },
+      {
+        "name": "chat_bubble_user",
+        "kind": "solid",
+        "bg": "#1C1917",
+        "on_bg": "#FAF8F5",
+        "on_bg_muted": "#D6D3D1",
+        "roles": {
+          "link": "#FDBA74",
+          "error": "#FCA5A5",
+          "success": "#86EFAC"
+        }
+      },
+      {
+        "name": "decision_card",
+        "kind": "solid",
+        "bg": "#FFFDF9",
+        "on_bg": "#1C1917",
+        "on_bg_muted": "#78716C",
+        "roles": {
+          "link": "#C2410C",
+          "error": "#B91C1C",
+          "success": "#15803D"
+        }
+      },
+      {
+        "name": "comparison_panel",
+        "kind": "solid",
+        "bg": "#FDFCFA",
+        "on_bg": "#1C1917",
+        "on_bg_muted": "#57534E",
+        "roles": {
+          "link": "#C2410C",
+          "error": "#B91C1C",
+          "success": "#15803D"
+        }
+      },
+      {
+        "name": "pill_badge",
+        "kind": "solid",
+        "bg": "#EFEAE1",
+        "on_bg": "#292524",
+        "on_bg_muted": "#78716C"
+      },
+      {
+        "name": "inverse",
+        "kind": "solid",
+        "bg": "#1C1917",
+        "on_bg": "#FAF8F5",
+        "on_bg_muted": "#A8A29E"
+      },
+      {
+        "name": "hero_image",
+        "kind": "image",
+        "contrast_against": "#292524",
+        "guarantee": "scrim: linear-gradient(180deg, rgba(28,25,23,0.3) 0%, rgba(28,25,23,0.75) 100%)",
+        "on_bg": "#FFFFFF",
+        "on_bg_muted": "#E7E5E4",
+        "roles": {
+          "link": "#FED7AA",
+          "error": "#FCA5A5",
+          "success": "#86EFAC"
+        }
+      }
+    ],
+    "accent": "#C2410C",
+    "on_accent": "#FFFFFF",
+    "secondary_accent": "#047857",
+    "on_secondary_accent": "#FFFFFF",
+    "border_subtle": "#E7E2D8",
+    "border_strong": "#D6CEBF"
+  },
+  "typography": {
+    "font_heading": "'Lora Variable', serif",
+    "font_sans": "'DM Sans Variable', sans-serif",
+    "font_mono": "'JetBrains Mono Variable', monospace",
+    "scale_px": {
+      "display": 48,
+      "h1": 36,
+      "h2": 28,
+      "h3": 22,
+      "body": 16,
+      "caption": 14
+    },
+    "pairing_archetype": "The Old Money Editorial Tech: Warm literary serif for conversational travel sketches + clean geometric DM Sans for chat bubbles and structured planning state"
+  },
+  "entry_surfaces": {
+    "/": "conversation-first travel workbench: top minimal branded nav + persistent state switcher, left/center expansive chat canvas with rich response artifacts, right collapsible Current Plan inspector (mobile: bottom drawer/tabs)"
+  },
+  "visual_enhancers": {
+    "paper_texture": "Subtle warm stone tint with 1px border strokes (#E7E2D8) and 0.5px inner hairline dividers",
+    "glass_nav": "bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[#E7E2D8]",
+    "card_elevation": "shadow-[0_2px_8px_rgba(28,25,23,0.04),0_12px_24px_rgba(28,25,23,0.03)]",
+    "selection_state": "bg-[#C2410C]/10 text-[#C2410C] border-[#C2410C]/30"
+  },
+  "prototype_states": [
+    {
+      "id": "new-trip",
+      "title": "1. New Trip (Conversational Start)",
+      "description": "Minimal, welcoming conversational start. Freeform travel query with lightweight origin/dates/travelers chips.",
+      "default_prompt": "We have about 8 days in December from Bangalore. Couple plus a 10-year-old. Thinking Hong Kong and Macau but open."
+    },
+    {
+      "id": "first-sketch",
+      "title": "2. First Trip Sketch",
+      "description": "Selective rich imagery, suggested destination order (HK 5 nights -> Macau 3 nights), trade-offs (peak crowd, ferry vs bridge), feasibility alerts, and 3 open decisions."
+    },
+    {
+      "id": "mature-solo",
+      "title": "3. Mature Solo Trip",
+      "description": "Ongoing conversational workspace with canonical collapsible Current Plan side-by-side: stays booked/unbooked, route milestones, open decisions, and live itinerary graph."
+    },
+    {
+      "id": "material-change",
+      "title": "4. Material Plan Change",
+      "description": "User says 'Actually, let's do Macau first.' JugIQ presents an explicit side-by-side Before/After comparison (HK->Macau vs Macau->HK), sequence logistics impact, Apply button, and contextual Undo."
+    },
+    {
+      "id": "group-room",
+      "title": "5. Group Trip Room",
+      "description": "Multiplayer family chat (Priya, Arjun, Rohan). AI responds only on @JugIQ or 'Revise Trip'. Shows synthesis of conflicting dates/activities while retaining unresolved items as Open Decisions."
+    },
+    {
+      "id": "booking-comparison",
+      "title": "6. Booking Comparison (Neutral Ranking)",
+      "description": "Cross-provider comparison for Peak Tram + Sky Terrace & Cotai Ferry. Strict traveller-value ranking (verified price, cancellation, instant pass), clear checked timestamp, and transparent neutrality disclosure."
+    }
+  ],
+  "image_urls": {
+    "destinations": [
+      {
+        "url": "https://images.unsplash.com/photo-1716706711056-510d49962eea?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwxfHxob25nJTIwa29uZyUyMHNreWxpbmUlMjBoYXJib3J8ZW58MHx8fHwxNzg5NDYxOTY0fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Hong Kong Victoria Harbour skyline and waterfront",
+        "category": "destination_hong_kong"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1553660148-d3ffd5cfe5a8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwzfHxtYWNhdSUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3ODk0NjE5Njl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Historic Senado Square pastel architecture in Macau",
+        "category": "destination_macau"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1562525378-1e880eca8693?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwxfHxtYWNhdSUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3ODk0NjE5Njl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Macau heritage colonial arches and cobblestone",
+        "category": "destination_macau_heritage"
+      },
+      {
+        "url": "https://images.unsplash.com/flagged/photo-1564411478779-e2dbb9e90ca2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjB0cmF2ZWxpbmclMjBhaXJwb3J0JTIwY2l0eXxlbnwwfHx8fDE3ODk0NjE5NjR8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Parent and child traveler watching departing flights",
+        "category": "family_traveler_context"
+      }
+    ],
+    "providers": [
+      {
+        "name": "Klook",
+        "badge_color": "#FF5722",
+        "category": "ota_provider"
+      },
+      {
+        "name": "Viator",
+        "badge_color": "#00875A",
+        "category": "ota_provider"
+      },
+      {
+        "name": "GetYourGuide",
+        "badge_color": "#D8232A",
+        "category": "ota_provider"
+      },
+      {
+        "name": "Official Operator Direct",
+        "badge_color": "#334155",
+        "category": "direct_provider"
+      }
+    ]
+  },
+  "motion": {
+    "chat_message_entrance": "opacity 0 to 1, y 8px to 0px, duration 0.25s ease-out",
+    "drawer_transition": "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+    "plan_revision_shimmer": "subtle pulse highlight on changed route nodes for 1.2s",
+    "state_switch_transition": "fade and slight slide across views",
+    "hover_elements": "transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease"
+  },
+  "accessibility": {
+    "wcag_level": "WCAG AA (all text >= 4.5:1 contrast against respective surface)",
+    "data_testid_convention": "All interactive buttons, inputs, tabs, state-switchers, decisions, compare items have kebab-case data-testid (e.g. data-testid='apply-change-button', data-testid='open-decisions-badge', data-testid='state-switcher-group-room')",
+    "keyboard_navigation": "Full tab and enter/space support for decision pills, plan toggles, drawer controls and chat inputs",
+    "aria_roles": "aria-live='polite' for conversational streaming, aria-expanded for Current Plan drawer"
+  },
+  "component_structure": {
+    "app_shell": "/app/frontend/src/App.tsx",
+    "main_page": "/app/frontend/src/pages/Home.tsx",
+    "css_tokens": "/app/frontend/src/index.css",
+    "modular_components": [
+      "/app/frontend/src/components/jugiq/HeaderNav.tsx",
+      "/app/frontend/src/components/jugiq/StateSwitcherBar.tsx",
+      "/app/frontend/src/components/jugiq/ChatCanvas.tsx",
+      "/app/frontend/src/components/jugiq/CurrentPlanPanel.tsx",
+      "/app/frontend/src/components/jugiq/FirstSketchCard.tsx",
+      "/app/frontend/src/components/jugiq/MaterialChangeDiff.tsx",
+      "/app/frontend/src/components/jugiq/GroupRoomThread.tsx",
+      "/app/frontend/src/components/jugiq/BookingComparisonModal.tsx",
+      "/app/frontend/src/components/jugiq/OpenDecisionsDrawer.tsx"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Retain conversation-first feel: chat is the dominant workspace; Current Plan is a structured companion, never a traditional bureaucratic OTA itinerary.",
+    "Implement the 6 distinct clickable prototype states seamlessly with both guided 'Next Step' button and a persistent top State Switcher banner.",
+    "Keep interactive controls realistic: typing custom queries triggers contextual simulated responses; quick chips inject starter text; 'Actually Macau first' triggers route diff; 'Revise Trip' runs consensus synthesis; 'Compare booking' opens un-biased multi-provider modal.",
+    "Include the crucial neutrality disclosure banner in the Booking Comparison modal: 'JugIQ ranks options strictly on verified traveller value (price, cancellation, convenience). Partner commissions never influence ranking.'",
+    "Ensure full responsiveness: on mobile (< 1024px), Current Plan switches from side-panel to sticky bottom sheet/toggle drawer with badge counter.",
+    "Do NOT add fake auth forms, payment checkouts, or technical AI jargon ('LLM temperature', 'tokens', 'Compute Wallet'). Keep vocabulary focused on: Current Plan, Open Decisions, Revise Trip, Invite, Compare, Apply changes, Undo."
+  ]
+}
