@@ -92,3 +92,25 @@ Independent second direction. Orchestrator `pages/HomeB.tsx`; components in
 Same six states, same scenario, same booking-neutrality + confirmed-booking rules
 as A. Desktop is a ~60/40 chat+workspace split; mobile is chat-first with the
 workspace behind a bottom bar → sheet.
+
+## Candidate C — Hybrid (`/c`) · final M1 convergence
+Combines A + B; A and B remain unchanged. Orchestrator `pages/HomeC.tsx`; new
+component `components/jugiq-c/PlanPanelC.tsx`. Reuses `ChatMessage`,
+`SketchTimeline` (B), `ChangeImpact` (B), `GroupProposal` (B),
+`BookingComparison`, `MarkBookedDialog`.
+- New Trip: A's lightweight "Where are you thinking of going?" — no structure.
+- First Sketch: B's concise route timeline + selective imagery.
+- Mature (desktop): persistent ~65/35 plan (route spine: Needs attention →
+  Current Plan → Open Decisions), **collapsible** (Hide plan / Plan · N reopen).
+  Mark as booked is an understated icon action per unbooked item.
+- Mobile: chat-first; a compact `Plan · N` header button opens the plan as a
+  bottom drawer. No side-by-side workspace.
+- Material Change: B's Adopted vs Proposed + downstream effects; confirmed
+  booking preserved and flagged (Booking needs attention).
+- Group: corrected semantics — before Revise the panel shows only Current Plan,
+  Open Decisions and a neutral "N new messages since the last plan update"; no
+  agreement is claimed. Revise → "Proposed from your discussion"; only after
+  Apply does "Where the group stands" (adopted) appear.
+- Booking: unchanged A/B behavior (neutral ranking, one disclosure, demo-data
+  note, outbound handoff ≠ booked, separate Mark as booked).
+A global 3-way `VariantSwitcher` (A/B/C) is mounted in `App.tsx`.
