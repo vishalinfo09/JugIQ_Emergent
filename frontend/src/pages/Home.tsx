@@ -12,24 +12,27 @@ import { MaterialChangeDiff } from "@/components/jugiq/MaterialChangeDiff";
 import { CurrentPlanPanel } from "@/components/jugiq/CurrentPlanPanel";
 import { BookingComparison } from "@/components/jugiq/BookingComparison";
 import { ReviseSynthesisCard } from "@/components/jugiq/ReviseSynthesisCard";
+import { MarkBookedDialog } from "@/components/jugiq/MarkBookedDialog";
 import {
-  BASE_DECISIONS,
+  AGREED_SLOW_DAY,
   CHANGE_MESSAGES,
   FIRST_SKETCH_MESSAGES,
   GROUP_MEMBERS,
   GROUP_MESSAGES,
   GROUP_OPEN_DECISIONS,
   GROUP_REVISED_DECISIONS,
-  HK_STOP,
-  INITIAL_PLAN,
-  MACAU_STOP,
+  makeFreshPlan,
+  makeGroupPlan,
+  makeMaturePlan,
   MATURE_MESSAGES,
   NEW_TRIP_MESSAGES,
   NEW_TRIP_PROMPT,
   PROTOTYPE_STATES,
   STARTER_CHIPS,
   type Artifact,
+  type BookingDetails,
   type ChatMsg,
+  type MarkTarget,
   type Plan,
   type StateId,
 } from "@/lib/jugiq-data";
@@ -63,6 +66,24 @@ const PLAN_VISIBLE_BY_DEFAULT: Record<StateId, boolean> = {
   "group-room": true,
   "booking-comparison": true,
 };
+
+// Whether a Current Plan exists at all in a given state. Before "Use this plan",
+// there is no trip yet — so no plan facts or Current Plan control in the header.
+const PLAN_EXISTS_BY_STATE: Record<StateId, boolean> = {
+  "new-trip": false,
+  "first-sketch": false,
+  "mature-solo": true,
+  "material-change": true,
+  "group-room": true,
+  "booking-comparison": true,
+};
+
+function planForState(id: StateId): Plan {
+  if (id === "group-room") return makeGroupPlan();
+  if (id === "mature-solo" || id === "material-change" || id === "booking-comparison")
+    return makeMaturePlan();
+  return makeFreshPlan();
+}
 
 let counter = 0;
 const nextId = () => `gen-${++counter}`;
@@ -110,7 +131,8 @@ function scriptedReply(text: string, hasPlan: boolean): { text: string; artifact
 export default function Home() {
   const [stateId, setStateId] = useState<StateId>("new-trip");
   const [messages, setMessages] = useState<ChatMsg[]>(SCRIPT["new-trip"]);
-  const [plan, setPlan] = useState<Plan>(INITIAL_PLAN);
+  const [plan, setPlan] = useState<Plan>(makeFreshPlan());
+  const [planActive, setPlanActive] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [mobilePlanOpen, setMobilePlanOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
@@ -119,6 +141,7 @@ export default function Home() {
   const [routeGlow, setRouteGlow] = useState(false);
   const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState("");
+  const [markTarget, setMarkTarget] = useState<MarkTarget | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const current = useMemo(
@@ -134,17 +157,15 @@ export default function Home() {
   function goToState(id: StateId) {
     setStateId(id);
     setMessages(SCRIPT[id]);
+    setPlanActive(PLAN_EXISTS_BY_STATE[id]);
     setPlanOpen(PLAN_VISIBLE_BY_DEFAULT[id]);
     setMobilePlanOpen(false);
     setChangeApplied(false);
     setReviseApplied(false);
     setTyping(false);
     setDraft("");
-    setPlan({
-      ...INITIAL_PLAN,
-      stops: [HK_STOP, MACAU_STOP],
-      decisions: id === "group-room" ? GROUP_OPEN_DECISIONS : BASE_DECISIONS,
-    });
+    setMarkTarget(null);
+    setPlan(planForState(id));
     setBookingOpen(id === "booking-comparison");
   }
 
@@ -178,6 +199,8 @@ export default function Home() {
   }
 
   function usePlan() {
+    setPlan(makeFreshPlan());
+    setPlanActive(true);
     setPlanOpen(true);
     setStateId("mature-solo");
     setMessages([
@@ -192,28 +215,43 @@ export default function Home() {
         id: nextId(),
         kind: "jugiq",
         time: "now",
-        text: "Done — that's your Current Plan now, on the right. Three things are still open, and nothing is booked yet.",
+        text: "Done — that's your Current Plan now, on the right. Everything's planned, nothing's booked yet. Whenever you actually book something, hit Mark as booked and I'll record it.",
       },
     ]);
     toast.success("Current Plan created", {
-      description: "Hong Kong 5 nights, then Macau 3 nights.",
+      description: "Hong Kong 5 nights, then Macau 3 nights — nothing booked yet.",
     });
   }
 
+  const hkBooked = plan.stops.some((s) => s.id === "hk" && s.stayStatus === "booked");
+
   function applyRouteChange() {
-    setPlan((p) => ({ ...p, stops: [...p.stops].reverse() }));
+    setPlan((p) => {
+      const stops = [...p.stops].reverse();
+      return {
+        ...p,
+        stops: stops.map((s) =>
+          s.id === "hk" && s.stayStatus === "booked" ? { ...s, bookingConflict: true } : s,
+        ),
+      };
+    });
     setChangeApplied(true);
     setPlanOpen(true);
     setRouteGlow(true);
     window.setTimeout(() => setRouteGlow(false), 1500);
     toast.success("Current Plan updated — Macau first", {
-      description: "Stays and the last day shifted with it.",
+      description: hkBooked
+        ? "Planned dates shifted. Your confirmed hotel is unchanged but now flagged."
+        : "Stays and the last day shifted with it.",
       action: { label: "Undo", onClick: undoRouteChange },
     });
   }
 
   function undoRouteChange() {
-    setPlan((p) => ({ ...p, stops: [HK_STOP, MACAU_STOP] }));
+    setPlan((p) => {
+      const stops = [...p.stops].reverse();
+      return { ...p, stops: stops.map((s) => ({ ...s, bookingConflict: false })) };
+    });
     setChangeApplied(false);
     setRouteGlow(true);
     window.setTimeout(() => setRouteGlow(false), 1500);
@@ -236,19 +274,73 @@ export default function Home() {
   }
 
   function applyRevise() {
-    setPlan((p) => ({ ...p, decisions: GROUP_REVISED_DECISIONS }));
+    setPlan((p) => ({
+      ...p,
+      stops: p.stops.map((s) =>
+        s.id === "hk" && !s.highlights.some((h) => h.label === AGREED_SLOW_DAY.label)
+          ? { ...s, highlights: [...s.highlights, { ...AGREED_SLOW_DAY }] }
+          : s,
+      ),
+      decisions: GROUP_REVISED_DECISIONS,
+    }));
     setReviseApplied(true);
     setPlanOpen(true);
     toast.success("Current Plan updated for the room", {
-      description: "One disagreement kept as an Open Decision.",
+      description: "Added the agreed slow day; show-vs-flight kept as an Open Decision.",
       action: { label: "Undo", onClick: undoRevise },
     });
   }
 
   function undoRevise() {
-    setPlan((p) => ({ ...p, decisions: GROUP_OPEN_DECISIONS }));
+    setPlan((p) => ({
+      ...p,
+      stops: p.stops.map((s) =>
+        s.id === "hk"
+          ? { ...s, highlights: s.highlights.filter((h) => h.label !== AGREED_SLOW_DAY.label) }
+          : s,
+      ),
+      decisions: GROUP_OPEN_DECISIONS,
+    }));
     setReviseApplied(false);
     toast("Revision undone");
+  }
+
+  function confirmBooked(details: BookingDetails) {
+    const t = markTarget;
+    if (!t) return;
+    setPlan((p) => ({
+      ...p,
+      stops: p.stops.map((s) => {
+        if (s.id !== t.stopId) return s;
+        if (t.kind === "stay")
+          return { ...s, stayStatus: "booked", stayBooking: details, bookingConflict: false };
+        return {
+          ...s,
+          highlights: s.highlights.map((h) =>
+            h.label === t.label ? { ...h, status: "booked", booking: details } : h,
+          ),
+        };
+      }),
+    }));
+    setMarkTarget(null);
+    setPlanOpen(true);
+    toast.success("Marked as booked", {
+      description: `${t.label}${details.provider ? ` · ${details.provider}` : ""}`,
+    });
+  }
+
+  function markBookedFromCompare(provider: string) {
+    // The comparison is scoped to the Peak Tram activity in Hong Kong.
+    setBookingOpen(false);
+    setPlanActive(true);
+    setPlanOpen(true);
+    setMarkTarget({
+      stopId: "hk",
+      kind: "highlight",
+      label: "Peak Tram + Sky Terrace",
+      title: "Peak Tram + Sky Terrace",
+      prefill: { provider },
+    });
   }
 
   function resolveDecision(id: string) {
@@ -274,6 +366,7 @@ export default function Home() {
       return (
         <MaterialChangeDiff
           applied={changeApplied}
+          hasConfirmedBooking={hkBooked}
           onApply={applyRouteChange}
           onUndo={undoRouteChange}
           onKeep={() => toast("Keeping Hong Kong first")}
@@ -294,6 +387,7 @@ export default function Home() {
       plan={plan}
       onCompare={() => setBookingOpen(true)}
       onResolve={resolveDecision}
+      onMarkBooked={setMarkTarget}
       highlightRoute={routeGlow}
       className="h-full"
     />
@@ -312,51 +406,61 @@ export default function Home() {
             <span className="font-heading text-lg font-semibold tracking-tight">JugIQ</span>
           </div>
           <span className="hidden h-4 w-px bg-hairline sm:block" />
-          <div className="hidden min-w-0 sm:block">
-            <p className="truncate text-sm font-medium">{plan.title}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {plan.window} · {plan.travellers}
-            </p>
-          </div>
+          {planActive ? (
+            <div className="hidden min-w-0 sm:block" data-testid="header-trip-facts">
+              <p className="truncate text-sm font-medium">{plan.title}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {plan.window} · {plan.travellers}
+              </p>
+            </div>
+          ) : (
+            <span className="hidden text-sm text-muted-foreground sm:block" data-testid="header-new-trip">
+              New trip
+            </span>
+          )}
 
           <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toast("Invite link copied — anyone with it can join this trip")}
-              data-testid="invite-button"
-            >
-              <UserPlus className="size-4" />
-              <span className="hidden sm:inline">Invite</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="lg:hidden"
-              onClick={() => setMobilePlanOpen(true)}
-              data-testid="mobile-current-plan-button"
-            >
-              <ListChecks className="size-4" />
-              Plan
-              <span className="rounded-full bg-clay px-1.5 font-mono text-[0.65rem] text-white">
-                {plan.decisions.length}
-              </span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden lg:inline-flex"
-              onClick={() => setPlanOpen((v) => !v)}
-              aria-expanded={planOpen}
-              data-testid="toggle-current-plan-button"
-            >
-              {planOpen ? (
-                <PanelRightClose className="size-4" />
-              ) : (
-                <PanelRightOpen className="size-4" />
-              )}
-              Current Plan
-            </Button>
+            {planActive && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toast("Invite link copied — anyone with it can join this trip")}
+                  data-testid="invite-button"
+                >
+                  <UserPlus className="size-4" />
+                  <span className="hidden sm:inline">Invite</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="lg:hidden"
+                  onClick={() => setMobilePlanOpen(true)}
+                  data-testid="mobile-current-plan-button"
+                >
+                  <ListChecks className="size-4" />
+                  Plan
+                  <span className="rounded-full bg-clay px-1.5 font-mono text-[0.65rem] text-white">
+                    {plan.decisions.length}
+                  </span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden lg:inline-flex"
+                  onClick={() => setPlanOpen((v) => !v)}
+                  aria-expanded={planOpen}
+                  data-testid="toggle-current-plan-button"
+                >
+                  {planOpen ? (
+                    <PanelRightClose className="size-4" />
+                  ) : (
+                    <PanelRightOpen className="size-4" />
+                  )}
+                  Current Plan
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -574,7 +678,22 @@ export default function Home() {
         </SheetContent>
       </Sheet>
 
-      <BookingComparison open={bookingOpen} onOpenChange={setBookingOpen} />
+      <BookingComparison
+        open={bookingOpen}
+        onOpenChange={setBookingOpen}
+        onOpenProvider={(p) =>
+          toast(`Opening ${p} in a new tab`, {
+            description: "This is just a handoff — it won't mark anything as booked.",
+          })
+        }
+        onMarkBooked={markBookedFromCompare}
+      />
+
+      <MarkBookedDialog
+        target={markTarget}
+        onOpenChange={(o) => !o && setMarkTarget(null)}
+        onConfirm={confirmBooked}
+      />
 
       {stateId === "booking-comparison" && !bookingOpen && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 flex justify-center">

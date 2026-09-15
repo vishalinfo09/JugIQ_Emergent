@@ -96,7 +96,7 @@ export function FirstSketchCard({
           <h4 className="mb-2 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Why this order
           </h4>
-          <p className="font-heading text-[1rem] leading-[1.7] text-foreground/90">
+          <p className="text-[0.95rem] leading-relaxed text-foreground/90">
             Your flight lands in Hong Kong, so starting there costs you nothing on day one. It also
             keeps the busiest days early, while everyone still has energy, and leaves Macau — smaller,
             slower, mostly walkable — for the tail end when a ten-year-old is running out of patience.

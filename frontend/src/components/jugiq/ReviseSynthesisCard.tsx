@@ -7,16 +7,19 @@ const AGREED = [
     who: "Priya, then Arjun",
     change: "Hong Kong stays at 5 nights",
     why: "Priya withdrew the objection once the islands and hikes came up.",
+    intoPlan: false,
   },
   {
     who: "Priya",
-    change: "One unstructured day added in Hong Kong",
-    why: "Asked for a slow day rather than a third big outing. Slotted on day 4.",
+    change: "A slow, unstructured day added in Hong Kong",
+    why: "She asked for one slow day rather than a third big outing.",
+    intoPlan: true,
   },
   {
     who: "Everyone",
     change: "Macau stays at 3 nights",
     why: "Nobody argued for more or less.",
+    intoPlan: false,
   },
 ];
 
@@ -46,20 +49,27 @@ export function ReviseSynthesisCard({
       </div>
 
       <div className="px-5 py-4">
-        <p className="font-heading text-[1rem] leading-[1.7] text-foreground/90">
-          I read back through the last twenty messages. Three things settled on their own, and one
-          didn't — so I've left that one open rather than picking a side.
+        <p className="text-[0.95rem] leading-relaxed text-foreground/90">
+          I read back through the discussion. Most of it settled on its own — I've folded that into
+          the plan. One thing stayed split, so I've left it open rather than picking a side.
         </p>
 
-        <h4 className="mb-2 mt-4 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Settled in conversation
+        <h4 className="mb-2 mt-4 flex items-center gap-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-pine">
+          <Check className="size-3.5" /> Incorporated into the plan
         </h4>
         <ul className="space-y-2.5">
           {AGREED.map((a) => (
             <li key={a.change} className="flex gap-2.5">
               <Check className="mt-0.5 size-4 shrink-0 text-pine" />
               <div>
-                <p className="text-sm font-medium">{a.change}</p>
+                <p className="text-sm font-medium">
+                  {a.change}
+                  {a.intoPlan && (
+                    <span className="ml-2 rounded-full bg-pine/12 px-1.5 py-0.5 text-[0.62rem] font-medium text-pine">
+                      added to Current Plan
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   {a.why} <span className="text-foreground/50">— {a.who}</span>
                 </p>
@@ -73,14 +83,14 @@ export function ReviseSynthesisCard({
           data-testid="unresolved-open-decision"
         >
           <h4 className="mb-1.5 flex items-center gap-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-clay">
-            <CircleHelp className="size-3.5" /> Still open — kept as a decision
+            <CircleHelp className="size-3.5" /> Left unresolved — kept as an Open Decision
           </h4>
           <p className="text-sm font-medium">
             Keep the Saturday show, or take the early Sunday flight home?
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             Rohan wants the show; Arjun wants to be back for Monday. Both are reasonable, and it
-            isn't mine to settle. It's now in Open Decisions so it doesn't get lost in the thread.
+            isn't mine to settle — so it goes to Open Decisions rather than being forced either way.
           </p>
         </div>
       </div>

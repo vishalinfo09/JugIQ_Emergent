@@ -25,12 +25,24 @@ export const PROTOTYPE_STATES: PrototypeState[] = [
   { id: "booking-comparison", index: 6, label: "Compare", blurb: "Neutral booking options" },
 ];
 
-export type BookStatus = "booked" | "held" | "not-booked";
+// "planned" = currently intended but not booked. "booked" = the user has
+// explicitly confirmed a real booking was made.
+export type BookStatus = "booked" | "planned" | "not-booked";
+
+/** Optional, user-supplied confirmation details captured by Mark as booked. */
+export interface BookingDetails {
+  provider?: string;
+  dates?: string;
+  amount?: string;
+  cancellation?: string;
+  note?: string;
+}
 
 export interface PlanHighlight {
   label: string;
   status: BookStatus;
-  /** id of the Open Decision that must be settled before this can be booked */
+  booking?: BookingDetails;
+  /** id of the Open Decision that becomes relevant to this item */
   blockedBy?: string;
   /** subtle contextual prompt shown while that decision is still open */
   nudge?: string;
@@ -43,6 +55,9 @@ export interface PlanStop {
   nights: number;
   stay: string;
   stayStatus: BookStatus;
+  stayBooking?: BookingDetails;
+  /** set when a confirmed stay booking no longer matches the planned dates */
+  bookingConflict?: boolean;
   /** an Open Decision that becomes relevant to this leg's stay booking */
   stayBlockedBy?: string;
   stayNudge?: string;
@@ -68,44 +83,20 @@ export interface Plan {
   decisions: OpenDecision[];
 }
 
-export const HK_STOP: PlanStop = {
-  id: "hk",
-  city: "Hong Kong",
-  country: "Hong Kong SAR",
-  nights: 5,
-  stay: "Harbour-side apartment hotel, Tsim Sha Tsui",
-  stayStatus: "booked",
-  highlights: [
-    { label: "Peak Tram + Sky Terrace", status: "not-booked" },
-    { label: "Ocean Park full day", status: "held" },
-    { label: "Symphony of Lights harbour walk", status: "not-booked" },
-  ],
-  note: "Airport express and Octopus cards make this the easy landing point with a 10-year-old.",
-};
+/** Target for the Mark as booked confirmation modal. */
+export interface MarkTarget {
+  stopId: string;
+  kind: "stay" | "highlight";
+  label: string;
+  title: string;
+  prefill?: BookingDetails;
+}
 
-export const MACAU_STOP: PlanStop = {
-  id: "macau",
-  city: "Macau",
-  country: "Macau SAR",
-  nights: 3,
-  stay: "Cotai family resort, twin queen room",
-  stayStatus: "not-booked",
-  // Solo demonstration: the crossing choice resurfaces here, because when you
-  // arrive decides which night the resort is booked from.
-  stayBlockedBy: "d-crossing",
-  stayNudge: "Settle ferry or bridge first — the arrival time decides this booking.",
-  highlights: [
-    { label: "Senado Square & Ruins of St. Paul's", status: "not-booked" },
-    { label: "Taipa Village food walk", status: "not-booked" },
-    // Group demonstration: only surfaces once the show-vs-flight decision is open.
-    {
-      label: "House of Dancing Water matinee",
-      status: "not-booked",
-      blockedBy: "d-group-night",
-      nudge: "Rests on the show-vs-flight call the group left open.",
-    },
-  ],
-  note: "Compact and walkable; the resort pools are a good decompression before the long flight back.",
+export const TRIP_META = {
+  title: "December family trip",
+  travellers: "2 adults + 1 child (10)",
+  window: "8 days · 20–28 December",
+  origin: "Bangalore (BLR)",
 };
 
 export const BASE_DECISIONS: OpenDecision[] = [
@@ -131,27 +122,94 @@ export const BASE_DECISIONS: OpenDecision[] = [
   },
 ];
 
-export const INITIAL_PLAN: Plan = {
-  title: "December family trip",
-  travellers: "2 adults + 1 child (10)",
-  window: "8 days · 20–27 December",
-  origin: "Bangalore (BLR)",
-  stops: [HK_STOP, MACAU_STOP],
-  decisions: BASE_DECISIONS,
-};
+const macauStop = (): PlanStop => ({
+  id: "macau",
+  city: "Macau",
+  country: "Macau SAR",
+  nights: 3,
+  stay: "Cotai family resort, twin queen room",
+  stayStatus: "planned",
+  // Solo demonstration: the crossing choice resurfaces here, because when you
+  // arrive decides which night the resort is booked from.
+  stayBlockedBy: "d-crossing",
+  stayNudge: "Settle ferry or bridge first — the arrival time decides this booking.",
+  highlights: [
+    { label: "Senado Square & Ruins of St. Paul's", status: "not-booked" },
+    { label: "Taipa Village food walk", status: "not-booked" },
+    // Group demonstration: only surfaces once the show-vs-flight decision is open.
+    {
+      label: "House of Dancing Water matinee",
+      status: "not-booked",
+      blockedBy: "d-group-night",
+      nudge: "Rests on the show-vs-flight call the group left open.",
+    },
+  ],
+  note: "Compact and walkable; the resort pools are a good decompression before the long flight back.",
+});
+
+const hkStop = (booked: boolean): PlanStop => ({
+  id: "hk",
+  city: "Hong Kong",
+  country: "Hong Kong SAR",
+  nights: 5,
+  stay: "Harbour-side apartment hotel, Tsim Sha Tsui",
+  stayStatus: booked ? "booked" : "planned",
+  stayBooking: booked
+    ? {
+        provider: "Booked directly with the hotel",
+        dates: "20 Dec – 25 Dec",
+        amount: "₹58,400",
+        cancellation: "Free cancellation until 13 Dec",
+        note: "Harbour-view room, breakfast included",
+      }
+    : undefined,
+  highlights: [
+    { label: "Peak Tram + Sky Terrace", status: "not-booked" },
+    { label: "Ocean Park full day", status: "planned" },
+    { label: "Symphony of Lights harbour walk", status: "not-booked" },
+  ],
+  note: "Airport express and Octopus cards make this the easy landing point with a 10-year-old.",
+});
+
+/** Created when the user chooses "Use this plan" — nothing booked yet. */
+export const makeFreshPlan = (): Plan => ({
+  ...TRIP_META,
+  stops: [hkStop(false), macauStop()],
+  decisions: BASE_DECISIONS.map((d) => ({ ...d })),
+});
+
+/** Later fixture: the user has since confirmed the Hong Kong hotel booking. */
+export const makeMaturePlan = (): Plan => ({
+  ...TRIP_META,
+  stops: [hkStop(true), macauStop()],
+  decisions: BASE_DECISIONS.map((d) => ({ ...d })),
+});
 
 export const GROUP_DECISION: OpenDecision = {
   id: "d-group-night",
   question: "Keep the show night, or swap it for an early flight home?",
   context: "Rohan wants the Saturday show; Arjun wants the 08:10 departure to be back for Monday.",
   options: ["Keep show, fly Sunday evening", "Skip show, fly Sunday morning"],
-  unresolvedFrom: "Group discussion — still split",
+  unresolvedFrom: "Still split in the discussion",
 };
 
 // Group room starts without the crossing decision, so the crossing nudge stays a
 // purely solo demonstration; the show-vs-flight decision only joins after Revise.
 export const GROUP_OPEN_DECISIONS: OpenDecision[] = BASE_DECISIONS.slice(1);
 export const GROUP_REVISED_DECISIONS: OpenDecision[] = [GROUP_DECISION, ...BASE_DECISIONS.slice(1)];
+
+/** Group room base — nothing booked, group's own open decisions. */
+export const makeGroupPlan = (): Plan => ({
+  ...TRIP_META,
+  stops: [hkStop(false), macauStop()],
+  decisions: GROUP_OPEN_DECISIONS.map((d) => ({ ...d })),
+});
+
+/** The agreed change Revise Trip writes into the Current Plan. */
+export const AGREED_SLOW_DAY: PlanHighlight = {
+  label: "Slow, unstructured day",
+  status: "planned",
+};
 
 export const IMAGES = {
   hongKong:
@@ -205,19 +263,19 @@ export const FIRST_SKETCH_MESSAGES: ChatMsg[] = [
 ];
 
 export const MATURE_MESSAGES: ChatMsg[] = [
-  { id: "ms-1", kind: "user", time: "Mon", text: "Booked the Tsim Sha Tsui place. Harbour view was worth it." },
+  { id: "ms-1", kind: "user", time: "Mon", text: "Booked the Tsim Sha Tsui place directly with the hotel. Harbour view was worth it." },
   {
     id: "ms-2",
     kind: "jugiq",
     time: "Mon",
-    text: "Noted — that stay is marked booked in the Current Plan. It puts you ten minutes from the Star Ferry, so I've kept the Symphony of Lights evening on night two rather than night four.",
+    text: "Nice — I've marked that stay as booked now that you've confirmed it. It puts you ten minutes from the Star Ferry, so I've kept the Symphony of Lights evening on night two rather than night four.",
   },
   { id: "ms-3", kind: "user", time: "Tue", text: "Is Ocean Park going to be a nightmare that week?" },
   {
     id: "ms-4",
     kind: "jugiq",
     time: "Tue",
-    text: "Weekdays before the 24th are usually manageable; the 25th and 26th are the crunch. I've pencilled it for Monday the 22nd and left it as held rather than booked, since it's still one of your open decisions.",
+    text: "Weekdays before the 24th are usually manageable; the 25th and 26th are the crunch. I've pencilled it for Monday the 22nd and left it as planned, not booked, since it's still one of your open decisions.",
   },
   { id: "ms-5", kind: "user", time: "Tue", text: "And getting across to Macau — ferry or the bridge?" },
   {
@@ -235,7 +293,7 @@ export const CHANGE_MESSAGES: ChatMsg[] = [
     id: "mc-2",
     kind: "jugiq",
     time: "Wed",
-    text: "That's a real change rather than a tweak — it moves your stays, the crossing and the last day. Here's the difference side by side.",
+    text: "That's a real change rather than a tweak — and it runs into a booking you've already confirmed. Here's the difference side by side, and what it means for your Hong Kong hotel.",
     artifact: "diff",
   },
 ];
@@ -380,7 +438,10 @@ export const BOOKING_OPTIONS: BookingOption[] = [
 ];
 
 export const NEUTRALITY_NOTE =
-  "JugIQ ranks options strictly on traveller value — verified price, cancellation terms, what's included, availability confidence and convenience. JugIQ may earn a commission from some booking links. That never affects ranking or what you see here.";
+  "JugIQ ranks on traveller value alone — verified price, cancellation terms, what's included, availability confidence and convenience. JugIQ may earn a commission from some booking links; that never affects discovery, display or ranking.";
 
 export const COVERAGE_NOTE =
-  "These are the sources JugIQ checked for this activity. It isn't a complete view of the market, and prices can move after the time shown.";
+  "These are the sources JugIQ checked for this activity — not a complete view of the market, and prices can move after the time shown.";
+
+export const DEMO_DATA_NOTE =
+  "Prototype demo data: prices and availability shown here are illustrative. In production, each option would carry a verified source and freshness check.";

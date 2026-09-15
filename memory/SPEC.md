@@ -35,14 +35,30 @@ Switched via the sticky top pill bar (`state-switcher-<id>`) or the guided
    traveller value only; the monetised option (Viator) ranks third and is
    labelled. Includes neutrality disclosure and non-exhaustive coverage note.
 
+## Booking status semantics
+- `booked` = the user has explicitly confirmed a real booking (via Mark as booked).
+- `planned` = currently intended but not booked.
+- `not-booked` = not yet added/decided.
+Clicking an outbound "Open on <provider>" link is only a handoff — it never
+changes status. Mark as booked opens a confirmation modal (all fields optional;
+no passport/card/confirmation-number capture) and works for independently-made
+bookings too.
+
 ## Mock data model (TS only, `lib/jugiq-data.ts`)
 - `Plan { title, travellers, window, origin, stops: PlanStop[], decisions: OpenDecision[] }`
-- `PlanStop { id, city, country, nights, stay, stayStatus, highlights[], note }`
+- `PlanStop { id, city, country, nights, stay, stayStatus, stayBooking?, bookingConflict?, highlights[], note }`
+- `PlanHighlight { label, status, booking?, blockedBy?, nudge? }`
+- `BookingDetails { provider?, dates?, amount?, cancellation?, note? }`
 - `OpenDecision { id, question, context, options[], comparable?, unresolvedFrom? }`
-- `ChatMsg { id, kind: user|jugiq|person, author?, initials?, time, text, artifact? }`
-- `BookingOption { provider, price, cancellation, inclusions, availability, convenience, monetised, whyRanked }`
+- `MarkTarget { stopId, kind, label, title, prefill? }`
+- Plan factories: `makeFreshPlan()` (nothing booked, from "Use this plan"),
+  `makeMaturePlan()` (HK hotel confirmed), `makeGroupPlan()` (group decisions).
 
-Stop dates are derived client-side from a fixed 20 Dec trip start with `date-fns`.
+## Material Plan Change + confirmed booking
+The Mature/Plan-Change fixtures carry one genuinely confirmed booking (HK hotel,
+20–25 Dec). "Macau first" identifies the conflict up front, applies planned
+dates/order only, and preserves the reservation — flagged "Booking needs
+attention" in the Current Plan. No cancel/rebook functionality.
 
 ## Scripted replies
 `scriptedReply()` in `Home.tsx` keyword-matches the user's text (macau first /

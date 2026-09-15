@@ -53,7 +53,7 @@ export function ChatMessage({ msg, children }: { msg: ChatMsg; children?: React.
           <span className="font-heading text-sm font-semibold">JugIQ</span>
           <span className="text-[0.7rem] text-muted-foreground">{msg.time}</span>
         </div>
-        <p className="max-w-[42rem] font-heading text-[1.02rem] leading-[1.7] text-foreground/90">
+        <p className="max-w-[42rem] text-[0.98rem] leading-relaxed text-foreground/90">
           {msg.text}
         </p>
         {children ? <div className="mt-4">{children}</div> : null}

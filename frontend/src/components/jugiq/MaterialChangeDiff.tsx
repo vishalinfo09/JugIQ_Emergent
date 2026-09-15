@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Check, Undo2 } from "lucide-react";
+import { ArrowRight, Check, ShieldCheck, TriangleAlert, Undo2 } from "lucide-react";
 
 interface Column {
   label: string;
@@ -13,7 +13,7 @@ const CURRENT: Column = {
   label: "Current plan",
   route: ["Hong Kong · 5 nights", "Macau · 3 nights"],
   rows: [
-    { k: "Arrival day", v: "Straight to the Tsim Sha Tsui stay, already booked" },
+    { k: "Arrival day", v: "Straight to the Tsim Sha Tsui stay" },
     { k: "Crossing", v: "Once, mid-trip, on day 6" },
     { k: "Last day", v: "Macau → Hong Kong airport, 4h buffer needed" },
     { k: "Energy curve", v: "Big days early, slow days late" },
@@ -32,9 +32,9 @@ const PROPOSED: Column = {
 };
 
 const IMPACTS = [
-  "Your Tsim Sha Tsui stay is booked for the 20th. Reversing the order means moving those dates.",
   "The last day gets easier — no cross-border transfer with luggage before an international flight.",
   "Day one gets harder: a morning arrival plus a ferry with a tired ten-year-old.",
+  "Your Hong Kong nights shift later in the trip, which is what clashes with the booking below.",
 ];
 
 function RouteChain({ route, tone }: { route: string[]; tone: "muted" | "accent" }) {
@@ -61,11 +61,13 @@ function RouteChain({ route, tone }: { route: string[]; tone: "muted" | "accent"
 
 export function MaterialChangeDiff({
   applied,
+  hasConfirmedBooking,
   onApply,
   onUndo,
   onKeep,
 }: {
   applied: boolean;
+  hasConfirmedBooking: boolean;
   onApply: () => void;
   onUndo: () => void;
   onKeep: () => void;
@@ -128,10 +130,33 @@ export function MaterialChangeDiff({
         </ul>
       </div>
 
+      {hasConfirmedBooking && (
+        <div
+          className="border-t border-hairline bg-amber-500/[0.06] px-5 py-4"
+          data-testid="change-booking-conflict"
+        >
+          <h4 className="mb-1.5 flex items-center gap-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-amber-700">
+            <TriangleAlert className="size-3.5" /> Conflicts with a confirmed booking
+          </h4>
+          <p className="text-sm leading-relaxed text-foreground/85">
+            Your Hong Kong hotel is confirmed for <span className="font-medium">20–25 Dec</span>.
+            Putting Macau first pushes those nights later, so the dates would no longer line up.
+          </p>
+          <p className="mt-2 flex items-start gap-1.5 text-sm leading-relaxed text-foreground/85">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-pine" />
+            Applying this changes your <span className="font-medium">planned</span> dates and order
+            only. JugIQ won't cancel, move or rebook the reservation — it stays exactly as you
+            confirmed it, and gets flagged in the Current Plan so you can decide what to do.
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col gap-2 border-t border-hairline bg-linen/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
           {applied
-            ? "Current Plan now starts in Macau. You can put it back."
+            ? hasConfirmedBooking
+              ? "Plan now starts in Macau — your booked hotel is unchanged but flagged for attention."
+              : "Current Plan now starts in Macau. You can put it back."
             : "Nothing changes until you say so."}
         </p>
         <div className="flex gap-2">

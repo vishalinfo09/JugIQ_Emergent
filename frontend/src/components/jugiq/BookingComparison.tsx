@@ -6,16 +6,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   BOOKING_OPTIONS,
   BOOKING_SUBJECT,
   COVERAGE_NOTE,
+  DEMO_DATA_NOTE,
   NEUTRALITY_NOTE,
   type BookingOption,
 } from "@/lib/jugiq-data";
-import { Check, Clock, ExternalLink, Info, ShieldCheck } from "lucide-react";
+import { Check, CircleCheck, Clock, ExternalLink, FlaskConical, Info, ShieldCheck } from "lucide-react";
 
 const TONE: Record<"good" | "fair" | "poor", string> = {
   good: "text-pine",
@@ -23,7 +23,18 @@ const TONE: Record<"good" | "fair" | "poor", string> = {
   poor: "text-destructive",
 };
 
-function OptionRow({ opt, rank }: { opt: BookingOption; rank: number }) {
+function OptionRow({
+  opt,
+  rank,
+  onOpen,
+  onMarkBooked,
+}: {
+  opt: BookingOption;
+  rank: number;
+  onOpen: (provider: string) => void;
+  onMarkBooked: (provider: string) => void;
+}) {
+  const short = opt.provider.split(" ")[0];
   return (
     <li
       className={cn(
@@ -38,18 +49,7 @@ function OptionRow({ opt, rank }: { opt: BookingOption; rank: number }) {
             {rank}
           </span>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-heading text-base font-semibold">{opt.provider}</span>
-              {opt.monetised && (
-                <Badge
-                  variant="outline"
-                  className="text-[0.62rem] font-normal text-muted-foreground"
-                  data-testid={`commission-tag-${opt.id}`}
-                >
-                  JugIQ may earn a commission
-                </Badge>
-              )}
-            </div>
+            <span className="font-heading text-base font-semibold">{opt.provider}</span>
             <p className="text-sm text-muted-foreground">{opt.headline}</p>
           </div>
         </div>
@@ -94,14 +94,29 @@ function OptionRow({ opt, rank }: { opt: BookingOption; rank: number }) {
       </ul>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
-        <p className="max-w-[34rem] text-xs leading-relaxed text-muted-foreground">
+        <p className="max-w-[30rem] text-xs leading-relaxed text-muted-foreground">
           <span className="font-medium text-foreground/70">Why here: </span>
           {opt.whyRanked}
         </p>
-        <Button size="sm" variant="outline" data-testid={`open-${opt.id}-button`}>
-          Open on {opt.provider.split(" ")[0]}
-          <ExternalLink className="size-3.5" />
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onMarkBooked(short)}
+            data-testid={`mark-booked-${opt.id}-button`}
+          >
+            <CircleCheck className="size-3.5" /> Mark as booked
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onOpen(short)}
+            data-testid={`open-${opt.id}-button`}
+          >
+            Open on {short}
+            <ExternalLink className="size-3.5" />
+          </Button>
+        </div>
       </div>
     </li>
   );
@@ -110,9 +125,13 @@ function OptionRow({ opt, rank }: { opt: BookingOption; rank: number }) {
 export function BookingComparison({
   open,
   onOpenChange,
+  onOpenProvider,
+  onMarkBooked,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onOpenProvider: (provider: string) => void;
+  onMarkBooked: (provider: string) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -144,16 +163,30 @@ export function BookingComparison({
 
         <ul className="space-y-3 px-5 py-5 sm:px-6">
           {BOOKING_OPTIONS.map((o, i) => (
-            <OptionRow key={o.id} opt={o} rank={i + 1} />
+            <OptionRow
+              key={o.id}
+              opt={o}
+              rank={i + 1}
+              onOpen={onOpenProvider}
+              onMarkBooked={onMarkBooked}
+            />
           ))}
         </ul>
 
-        <p
-          className="border-t border-hairline px-5 py-4 text-xs leading-relaxed text-muted-foreground sm:px-6"
-          data-testid="coverage-disclosure"
-        >
-          {COVERAGE_NOTE}
-        </p>
+        <div className="space-y-2 border-t border-hairline px-5 py-4 sm:px-6">
+          <p
+            className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground"
+            data-testid="demo-data-note"
+          >
+            <FlaskConical className="mt-0.5 size-3.5 shrink-0" /> {DEMO_DATA_NOTE}
+          </p>
+          <p
+            className="text-xs leading-relaxed text-muted-foreground"
+            data-testid="coverage-disclosure"
+          >
+            {COVERAGE_NOTE}
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,22 +1,31 @@
 import { useRef, useState } from "react";
 import { addDays, format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { BookStatus, Plan } from "@/lib/jugiq-data";
-import { ArrowRight, CircleHelp, CornerDownRight, MapPin, Moon, Scale } from "lucide-react";
+import type { BookingDetails, BookStatus, MarkTarget, Plan, PlanStop } from "@/lib/jugiq-data";
+import {
+  ArrowRight,
+  CalendarClock,
+  CircleCheck,
+  CircleHelp,
+  CornerDownRight,
+  MapPin,
+  Moon,
+  Scale,
+  TriangleAlert,
+} from "lucide-react";
 
 const TRIP_START = new Date(2026, 11, 20);
 
 const STATUS_STYLE: Record<BookStatus, string> = {
   booked: "bg-pine/12 text-pine ring-1 ring-pine/25",
-  held: "bg-clay/12 text-clay ring-1 ring-clay/25",
+  planned: "bg-clay/12 text-clay ring-1 ring-clay/25",
   "not-booked": "bg-secondary text-muted-foreground ring-1 ring-border",
 };
 
 const STATUS_LABEL: Record<BookStatus, string> = {
   booked: "Booked",
-  held: "Held",
+  planned: "Planned",
   "not-booked": "Not booked",
 };
 
@@ -27,9 +36,53 @@ export function StatusPill({ status }: { status: BookStatus }) {
         "rounded-full px-2 py-0.5 text-[0.68rem] font-medium tracking-wide",
         STATUS_STYLE[status],
       )}
+      data-testid={`status-pill-${status}`}
     >
       {STATUS_LABEL[status]}
     </span>
+  );
+}
+
+function BookingSummary({
+  booking,
+  conflict,
+  plannedRange,
+}: {
+  booking: BookingDetails;
+  conflict?: boolean;
+  plannedRange?: string;
+}) {
+  const bits = [booking.provider, booking.dates, booking.amount, booking.cancellation].filter(
+    Boolean,
+  ) as string[];
+  return (
+    <div className="mt-1.5 space-y-1">
+      {bits.length > 0 && (
+        <p className="flex items-start gap-1 text-[0.72rem] leading-snug text-muted-foreground">
+          <CircleCheck className="mt-0.5 size-3 shrink-0 text-pine" />
+          <span>{bits.join(" · ")}</span>
+        </p>
+      )}
+      {booking.note && (
+        <p className="pl-4 text-[0.72rem] italic leading-snug text-muted-foreground">
+          {booking.note}
+        </p>
+      )}
+      {conflict && (
+        <div
+          className="mt-1 rounded-lg border border-amber-500/40 bg-amber-500/[0.08] px-2.5 py-2"
+          data-testid="booking-conflict-flag"
+        >
+          <p className="flex items-center gap-1.5 text-[0.72rem] font-semibold text-amber-700">
+            <TriangleAlert className="size-3.5" /> Booking needs attention
+          </p>
+          <p className="mt-0.5 text-[0.72rem] leading-snug text-amber-800/90">
+            Your plan now runs {plannedRange}, but this stay is booked for {booking.dates}. JugIQ
+            hasn't cancelled, moved or rebooked it — check whether the reservation still works.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -37,12 +90,14 @@ export function CurrentPlanPanel({
   plan,
   onCompare,
   onResolve,
+  onMarkBooked,
   highlightRoute,
   className,
 }: {
   plan: Plan;
   onCompare: () => void;
   onResolve: (id: string) => void;
+  onMarkBooked: (target: MarkTarget) => void;
   highlightRoute?: boolean;
   className?: string;
 }) {
@@ -57,7 +112,7 @@ export function CurrentPlanPanel({
   }
 
   let cursor = TRIP_START;
-  const dated = plan.stops.map((s) => {
+  const dated = plan.stops.map((s: PlanStop) => {
     const start = cursor;
     const end = addDays(start, s.nights);
     cursor = end;
@@ -67,12 +122,7 @@ export function CurrentPlanPanel({
   return (
     <div className={cn("flex flex-col", className)} data-testid="current-plan-panel">
       <div className="border-b border-hairline px-5 py-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-heading text-lg leading-tight">Current Plan</h2>
-          <Badge variant="outline" className="font-mono text-[0.65rem]">
-            canonical
-          </Badge>
-        </div>
+        <h2 className="font-heading text-lg leading-tight">Current Plan</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {plan.window} · {plan.travellers}
         </p>
@@ -121,39 +171,90 @@ export function CurrentPlanPanel({
                 <p className="ml-6 text-xs text-muted-foreground">{s.range}</p>
 
                 <div className="ml-6 mt-2 space-y-2 border-l border-hairline pl-3">
+                  {/* stay row */}
                   <div>
                     <div className="flex flex-wrap items-center justify-between gap-1.5">
                       <span className="text-sm text-foreground/90">{s.stay}</span>
                       <StatusPill status={s.stayStatus} />
                     </div>
-                    {s.stayNudge && s.stayBlockedBy && openIds.has(s.stayBlockedBy) && (
-                      <button
-                        type="button"
-                        onClick={() => focusDecision(s.stayBlockedBy!)}
-                        className="mt-1 flex items-start gap-1 text-left text-[0.72rem] leading-snug text-clay/90 transition-colors hover:text-clay"
-                        data-testid={`decision-nudge-${s.stayBlockedBy}`}
-                      >
-                        <CornerDownRight className="mt-0.5 size-3 shrink-0" />
-                        {s.stayNudge}
-                      </button>
+                    {s.stayStatus === "booked" && s.stayBooking ? (
+                      <BookingSummary
+                        booking={s.stayBooking}
+                        conflict={s.bookingConflict}
+                        plannedRange={s.range}
+                      />
+                    ) : (
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={() =>
+                            onMarkBooked({
+                              stopId: s.id,
+                              kind: "stay",
+                              label: s.stay,
+                              title: `${s.city} — ${s.stay}`,
+                              prefill: { dates: s.range },
+                            })
+                          }
+                          data-testid={`mark-booked-stay-${s.id}`}
+                        >
+                          <CircleCheck className="size-3" /> Mark as booked
+                        </Button>
+                        {s.stayNudge && s.stayBlockedBy && openIds.has(s.stayBlockedBy) && (
+                          <button
+                            type="button"
+                            onClick={() => focusDecision(s.stayBlockedBy!)}
+                            className="flex items-start gap-1 text-left text-[0.72rem] leading-snug text-clay/90 transition-colors hover:text-clay"
+                            data-testid={`decision-nudge-${s.stayBlockedBy}`}
+                          >
+                            <CornerDownRight className="mt-0.5 size-3 shrink-0" />
+                            {s.stayNudge}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
+
+                  {/* activity rows */}
                   {s.highlights.map((h) => (
                     <div key={h.label}>
                       <div className="flex flex-wrap items-center justify-between gap-1.5">
                         <span className="text-sm text-muted-foreground">{h.label}</span>
                         <StatusPill status={h.status} />
                       </div>
-                      {h.nudge && h.blockedBy && openIds.has(h.blockedBy) && (
-                        <button
-                          type="button"
-                          onClick={() => focusDecision(h.blockedBy!)}
-                          className="mt-1 flex items-start gap-1 text-left text-[0.72rem] leading-snug text-clay/90 transition-colors hover:text-clay"
-                          data-testid={`decision-nudge-${h.blockedBy}`}
-                        >
-                          <CornerDownRight className="mt-0.5 size-3 shrink-0" />
-                          {h.nudge}
-                        </button>
+                      {h.status === "booked" && h.booking ? (
+                        <BookingSummary booking={h.booking} />
+                      ) : (
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            className="h-6 px-2 text-[0.72rem] text-muted-foreground hover:text-foreground"
+                            onClick={() =>
+                              onMarkBooked({
+                                stopId: s.id,
+                                kind: "highlight",
+                                label: h.label,
+                                title: h.label,
+                              })
+                            }
+                            data-testid={`mark-booked-activity-${h.label.slice(0, 10).toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            <CircleCheck className="size-3" /> Mark as booked
+                          </Button>
+                          {h.nudge && h.blockedBy && openIds.has(h.blockedBy) && (
+                            <button
+                              type="button"
+                              onClick={() => focusDecision(h.blockedBy!)}
+                              className="flex items-start gap-1 text-left text-[0.72rem] leading-snug text-clay/90 transition-colors hover:text-clay"
+                              data-testid={`decision-nudge-${h.blockedBy}`}
+                            >
+                              <CornerDownRight className="mt-0.5 size-3 shrink-0" />
+                              {h.nudge}
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}
@@ -189,7 +290,9 @@ export function CurrentPlanPanel({
                 <p className="text-sm font-medium leading-snug">{d.question}</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{d.context}</p>
                 {d.unresolvedFrom && (
-                  <p className="mt-1.5 text-[0.7rem] font-medium text-clay">{d.unresolvedFrom}</p>
+                  <p className="mt-1.5 flex items-center gap-1 text-[0.7rem] font-medium text-clay">
+                    <CalendarClock className="size-3" /> {d.unresolvedFrom}
+                  </p>
                 )}
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {d.comparable ? (
